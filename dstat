@@ -2010,7 +2010,23 @@ def proc_readline(filename):
 def proc_splitline(filename, sep=None):
     "Return the first line of a file splitted"
 #    return open(filename).read().split(sep)
-    return linecache.getline(filename, 1).split(sep)
+    l = linecache.getline(filename, 1).split(sep)
+
+    # If we're reading /proc/<pid>/stat, the second field (name) may include
+    # spaces. It's supposed to be wrapped in parentheses, so let's make sure
+    # we handle that.
+    if re.match("^/proc/[0-9]+/stat$", filename) and l[1].find(')') == -1:
+        i = 2
+        while i < len(l) - 1:
+            if l[i].find(')') != -1:
+                break
+            i += 1
+
+        l[1] = ' '.join(l[1:i + 1])
+        for j in range(2, i + 1):
+            l.pop(2)
+
+    return l
 
 ### FIXME: Should we cache this within every step ?
 def proc_pidlist():
